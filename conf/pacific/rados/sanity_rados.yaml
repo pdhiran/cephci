@@ -57,6 +57,7 @@ globals:
       node7:
         role:
           - mon
+          - rgw
           - node-exporter
           - crash
       node8:
@@ -79,5 +80,6 @@ globals:
       node11:
         role:
           - mon
+          - rgw
           - node-exporter
           - crash
