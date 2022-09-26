@@ -209,8 +209,8 @@ def create_ibmc_ceph_nodes(
                     # can be used only for specific OSD_SCENARIO
                     node_params["osd-scenario"] = node_dict.get("osd-scenario")
 
-                if node_dict.get("image-name"):
-                    node_params["image-name"] = node_dict.get("image-name")
+                if node_dict.get("image-name", {}).get("ibm"):
+                    node_params["image-name"] = node_dict["image-name"]["ibm"]
 
                 if node_dict.get("cloud-data"):
                     node_params["cloud-data"] = node_dict.get("cloud-data")
@@ -350,8 +350,8 @@ def create_ceph_nodes(
                     # can be used only for specific OSD_SCENARIO
                     node_params["osd-scenario"] = node_dict.get("osd-scenario")
 
-                if node_dict.get("image-name"):
-                    node_params["image-name"] = node_dict.get("image-name")
+                if node_dict.get("image-name", {}).get("psi"):
+                    node_params["image-name"] = node_dict["image-name"]["psi"]
 
                 if node_dict.get("cloud-data"):
                     node_params["cloud-data"] = node_dict.get("cloud-data")
