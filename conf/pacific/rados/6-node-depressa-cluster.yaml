@@ -2,49 +2,15 @@ globals:
   -
     ceph-cluster:
       networks:
-        public: ['10.1.172.0/23']
+        public: ["10.0.208.0/22", "10.1.172.0/23", "10.8.128.0/21"]
       nodes:
-        -
-          hostname:  depressa007.ceph.redhat.com
-          ip: "10.1.172.207"
-          role:
-            - _admin
-            - installer
-            - alertmanager
-            - grafana
-            - prometheus
-            - mon
-            - mgr
-            - osd
-          root_password: redhat
-          volumes:
-            - /dev/sdb
-            - /dev/sdc
-            - /dev/sdd
-            - /dev/nvme0n1
-            - /dev/nvme1n1
-        -
-          hostname:  depressa008.ceph.redhat.com
-          ip: "10.1.172.208"
-          role:
-            - mon
-            - mgr
-            - osd
-          root_password: redhat
-          volumes:
-            - /dev/sdb
-            - /dev/sdc
-            - /dev/sdd
-            - /dev/nvme0n1
-            - /dev/nvme1n1
         -
           hostname:  depressa009.ceph.redhat.com
           ip: "10.1.172.209"
           role:
+            - mon
             - osd
-            - mds
-            - rgw
-          root_password: redhat
+          root_password: r
           volumes:
             - /dev/sdb
             - /dev/sdc
@@ -55,9 +21,10 @@ globals:
           hostname:  depressa010.ceph.redhat.com
           ip: "10.1.172.210"
           role:
-            - osd
             - mon
-          root_password: redhat
+            - mgr
+            - osd
+          root_password: r
           volumes:
             - /dev/sdb
             - /dev/sdc
@@ -69,8 +36,9 @@ globals:
           ip: "10.1.172.211"
           role:
             - osd
-            - mgr
-          root_password: redhat
+            - mds
+            - rgw
+          root_password: r
           volumes:
             - /dev/sdb
             - /dev/sdc
@@ -81,14 +49,92 @@ globals:
           hostname:  depressa012.ceph.redhat.com
           ip: "10.1.172.212"
           role:
+            - osd
             - mds
             - rgw
-            - osd
-            - client
-          root_password: redhat
+          root_password: r
           volumes:
             - /dev/sdb
             - /dev/sdc
             - /dev/sdd
             - /dev/nvme0n1
             - /dev/nvme1n1
+        -
+          hostname:  cali024.ceph.redhat.com
+          ip: "10.8.130.24"
+          role:
+            - osd
+            - mon
+          root_password: r
+          volumes:
+            - /dev/sda
+            - /dev/sdb
+            - /dev/sdd
+            - /dev/sde
+            - /dev/sdf
+            - /dev/sdg
+            - /dev/nvme0n1
+
+        -
+          hostname:  cali025.ceph.redhat.com
+          ip: "10.8.130.25"
+          role:
+            - osd
+            - mgr
+            - mon
+          root_password: r
+          volumes:
+            - /dev/sda
+            - /dev/sdb
+            - /dev/sdd
+            - /dev/sde
+            - /dev/sdf
+            - /dev/sdg
+            - /dev/nvme0n1
+
+        -
+          hostname:  cali026.ceph.redhat.com
+          ip: "10.8.130.26"
+          role:
+            - osd
+            - mds
+            - rgw
+          root_password: r
+          volumes:
+            - /dev/sda
+            - /dev/sdb
+            - /dev/sdd
+            - /dev/sde
+            - /dev/sdf
+            - /dev/sdg
+            - /dev/nvme0n1
+
+        -
+          hostname:  cali027.ceph.redhat.com
+          ip: "10.8.130.27"
+          role:
+            - osd
+            - mds
+            - rgw
+          root_password: r
+          volumes:
+            - /dev/sda
+            - /dev/sdb
+            - /dev/sdd
+            - /dev/sde
+            - /dev/sdf
+            - /dev/sdg
+            - /dev/nvme0n1
+
+        -
+          hostname:  ceph-pdhiran-systest-m27o3f-node1-installer
+          ip: "10.0.211.238"
+          role:
+            - mon
+            - client
+            - _admin
+            - installer
+            - alertmanager
+            - grafana
+            - prometheus
+          root_password: r

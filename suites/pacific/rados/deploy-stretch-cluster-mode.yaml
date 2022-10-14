@@ -45,7 +45,7 @@ tests:
               base_cmd_args:
                 verbose: true
               args:
-                mon-ip: <bootstrap-mon-shortname>
+                mon-ip: ceph-pdhiran-systest-m27o3f-node1-installer
                 orphan-initial-daemons: true
                 allow-fqdn-hostname: true
           - config:
@@ -86,11 +86,25 @@ tests:
                   encrypted: "true"                     # boolean as string
                   placement:
                     nodes:
-                      - <host3-shortname>
-                      - <host4-shortname>
+                      - depressa009
+                      - depressa010
+                      - depressa011
+                      - depressa012
+                      - cali024
+                      - cali025
+                      - cali026
+                      - cali027
                   spec:
                     data_devices:
-                      all: "true"                         # boolean as string
+                      paths:
+                        - /dev/datavg/data-lv1
+                        - /dev/datavg/data-lv2
+                        - /dev/datavg/data-lv3
+                        - /dev/datavg/data-lv4
+                        - /dev/datavg/data-lv5
+                    db_devices:
+                      paths:
+                        - /dev/dbvg/db-lv
 
   - test:
       name: MDS Service deployment with spec
@@ -141,7 +155,7 @@ tests:
       config:
         command: add
         id: client.1                      # client Id (<type>.<Id>)
-        node: <client-host-shortname>                     # client node
+        node: ceph-pdhiran-systest-m27o3f-node1-installer                     # client node
         install_packages:
           - ceph-common
           - ceph-base
@@ -160,12 +174,12 @@ tests:
         stretch_rule_name: "stretch_rule"
         site1:
           name: "DC1"
-          hosts: ["<host1-shortname>", "<host2-shortname>", ... ]
+          hosts: ["depressa009", "depressa010", "depressa011", "depressa012",  ]
         site2:
           name: "DC2"
-          hosts: ["<host3-shortname>", "<host4-shortname>", ... ]
+          hosts: ["cali024", "cali025", "cali026", "cali027", ]
         site3:
           name: "DC3"
-          hosts: ["<host5-shortname>"]
+          hosts: ["ceph-pdhiran-systest-m27o3f-node1-installer"]
       desc: Enables connectivity mode, deploys cluster with Stretch rule with arbiter node
       abort-on-fail: true
