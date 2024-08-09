@@ -53,6 +53,26 @@ tests:
                 root: default
                 datacenter: DC3
             - service_type: mon
+              spec:
+                crush_locations:
+                  host1:
+                    - datacenter=DC1
+                  host2:
+                    - datacenter=DC1
+                  host3:
+                    - datacenter=DC1
+                  host4:
+                    - datacenter=DC2
+                  host5:
+                    - datacenter=DC2
+                  host6:
+                    - datacenter=DC2
+                  host7:
+                    - datacenter=DC3
+                  host8:
+                    - datacenter=DC3
+                  host9:
+                    - datacenter=DC3
               placement:
                 label: mon
             - service_type: mgr
