@@ -124,10 +124,10 @@ class PoolFunctions:
             f"Writing {(obj_end - obj_start) * num_keys_obj} Key pairs"
             f" to increase the omap entries on pool {pool_name}"
         )
-        script_loc = "https://raw.githubusercontent.com/red-hat-storage/cephci/master/utility/generate_omap_entries.py"
+        lx = "https://raw.githubusercontent.com/red-hat-storage/cephci/refs/heads/main/utility/generate_omap_entries.py"
         client_node.exec_command(
             sudo=True,
-            cmd=f"curl -k {script_loc} -O",
+            cmd=f"curl -k {lx} -O",
         )
         # Setup Script pre-requisites : docopt
         client_node.exec_command(
@@ -785,6 +785,7 @@ class PoolFunctions:
             self.rados_obj.set_pool_property(
                 pool=pool, props="pg_autoscale_mode", value="on"
             )
+            time.sleep(10)
 
         init_pg_count = self.rados_obj.get_pool_property(pool=pool, props="pg_num")[
             "pg_num"

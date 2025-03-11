@@ -102,7 +102,7 @@ def run(ceph_cluster, **kw):
                     f"Pg autoscaler mode still on for pool : {entry['pool_name']}"
                 )
                 # tbd: Uncomment the below exception upon bug fix: https://bugzilla.redhat.com/show_bug.cgi?id=2252788
-                # raise Exception("PG autoscaler mode still on error")
+                raise Exception("PG autoscaler mode still on error")
         log.debug(
             "All the pools have the autoscaler mode changed from default on. pass"
         )
