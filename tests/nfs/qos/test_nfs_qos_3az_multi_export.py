@@ -1484,6 +1484,23 @@ def _scenario_cluster_bandwidth(config, ceph_cluster):
             )
 
             log.info(f"  QoS params: {bw_params}")
+
+            log.info("  Disabling QoS on all clusters before enable...")
+            for cn in cluster_names:
+                try:
+                    enable_disable_qos_for_cluster(
+                        enable_flag=False,
+                        ceph_cluster_nfs_obj=nfs_obj.cluster,
+                        cluster_name=cn,
+                        operation=cfg["control"],
+                    )
+                    log.info(f"    QoS disabled on {cn}")
+                except Exception:
+                    log.info(f"    QoS disable on {cn} (may already be off)")
+
+            log.info("  Settling 5s after QoS disable before re-enable...")
+            sleep(5)
+
             for cn in cluster_names:
                 enable_disable_qos_for_cluster(
                     enable_flag=True,
