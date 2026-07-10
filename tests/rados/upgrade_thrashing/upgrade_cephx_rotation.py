@@ -43,6 +43,35 @@ DEFAULT_CEPHX_CONFIG = {
 }
 
 
+def parse_ceph_rpm_base(ver_str):
+    """Return VERSION-RELEASE build id without dist tag.
+
+    Examples:
+      ``20.2.1-405.el9cp`` -> ``20.2.1-405``
+      ``2:20.2.1-294.el10cp`` -> ``20.2.1-294``
+    """
+    match = re.search(r"(\d+\.\d+\.\d+-\d+)", ver_str or "")
+    return match.group(1) if match else ""
+
+
+def format_admin_probe_failure(key_type, cluster_base, client_bases, probe_error):
+    """Build an actionable admin-probe failure message (XCXLT0 / aes256k)."""
+    clients = (
+        ", ".join(f"{name}={base or 'unknown'}" for name, base in (client_bases or []))
+        or "none"
+    )
+    err = (probe_error or "").strip()
+    if re.search(r"Malformed input|buffer:3|error setting modifier", err, re.I):
+        return (
+            "client.admin auth probe failed after keyring push: "
+            f"host client RPM cannot parse {key_type} admin key "
+            f"(cluster={cluster_base or 'unknown'}, clients=[{clients}])"
+        )
+    if err:
+        return f"client.admin auth probe failed after keyring push: {err}"
+    return "client.admin auth probe failed after keyring push"
+
+
 def _merge_cephx_config(config):
     cfg = dict(DEFAULT_CEPHX_CONFIG)
     if config:
@@ -166,6 +195,9 @@ class CephXRotationRemediator:
             )
 
             if self._needs_entity_rotation(checks):
+                # Host librados must match cluster before any aes256k keyring
+                # is pushed (client.* rotates before admin).
+                self._ensure_host_rpms_match_cluster(clients)
                 self._step_preferred_cipher()
                 self._rotate_entities(self._parse_insecure_client_entities(checks))
                 self._step_rotating_service_keys(checks)
@@ -553,6 +585,100 @@ class CephXRotationRemediator:
         self._shell(["ceph", "auth", "wipe-rotating-service-keys"])
         self.entities_rotated.append("wipe-rotating-service-keys")
 
+    def _cluster_rpm_base(self):
+        """Post-upgrade cluster ceph build id (e.g. 20.2.1-405)."""
+        try:
+            # shell() joins args with spaces — do not split bash -c into argv pieces.
+            out = self._shell(["ceph", "version"])
+        except Exception as exc:
+            log.warning("CephX remediation: could not read cluster version: %s", exc)
+            return ""
+        return parse_ceph_rpm_base(out)
+
+    def _host_rpm_base(self, node):
+        """Installed ceph-common build id on a host, or '' if missing."""
+        try:
+            out, _ = node.exec_command(
+                sudo=True,
+                cmd="rpm -q --qf '%{VERSION}-%{RELEASE}' ceph-common 2>/dev/null || true",
+                check_ec=False,
+            )
+        except Exception:
+            return ""
+        text = (out or "").strip()
+        if not text or "not installed" in text.lower():
+            return ""
+        return parse_ceph_rpm_base(text)
+
+    def _ensure_host_rpms_match_cluster(self, clients):
+        """Sync client host ceph-common to the cluster build before key rotation.
+
+        Orch upgrades containers only. Lab versionlocks / stale client RPMs leave
+        host librados unable to parse aes256k keyrings (XCXLT0).
+        """
+        target = self._cluster_rpm_base()
+        if not target:
+            # Soft-skip would push aes256k onto unknown/stale host RPMs (XCXLT0).
+            raise RuntimeError(
+                "CephX remediation: cannot determine cluster RPM base; "
+                "refusing key rotation without host client RPM sync"
+            )
+
+        def _sync_one(node):
+            hostname = getattr(node, "hostname", str(node))
+            current = self._host_rpm_base(node)
+            # ponytail: only hosts that already have ceph-common (probe path).
+            if not current:
+                return
+            if current == target:
+                log.info(
+                    "CephX remediation: %s already at ceph-common %s", hostname, current
+                )
+                return
+            log.info(
+                "CephX remediation: syncing %s ceph-common %s -> %s",
+                hostname,
+                current,
+                target,
+            )
+            # One SSH: drop ceph versionlocks then install matching build.
+            # Dist tag (el9cp/el10cp) comes from the host's repos.
+            # ponytail: ceph-common alone; yum pulls matching librados/deps.
+            cmd = (
+                "dnf versionlock delete 'ceph*' 'libceph*' 'librados*' 'librbd*' "
+                "'python3-ceph*' 'python3-rados*' 'python3-rbd*' 'python3-cephfs*' "
+                "2>/dev/null || true; "
+                "yum versionlock delete 'ceph*' 'libceph*' 'librados*' 'librbd*' "
+                "'python3-ceph*' 'python3-rados*' 'python3-rbd*' 'python3-cephfs*' "
+                "2>/dev/null || true; "
+                f"yum install -y --nogpgcheck 'ceph-common-{target}*'"
+            )
+            node.exec_command(sudo=True, cmd=cmd, timeout=900)
+            new = self._host_rpm_base(node)
+            if new != target:
+                raise RuntimeError(
+                    f"Host ceph-common on {hostname} still {new or 'unknown'} "
+                    f"after sync (want {target}); refusing key rotation"
+                )
+            log.info("CephX remediation: %s ceph-common synced to %s", hostname, new)
+
+        # Cover admin-probe clients and _rotate_entities push targets.
+        seen = set()
+        nodes = []
+        for node in list(clients or []) + self.ceph_cluster.get_nodes(role="client"):
+            if not node:
+                continue
+            key = getattr(node, "hostname", id(node))
+            if key in seen:
+                continue
+            seen.add(key)
+            nodes.append(node)
+        if not nodes:
+            return
+        with parallel() as p:
+            for node in nodes:
+                p.spawn(_sync_one, node)
+
     def _step_admin(self, checks, clients):
         if not self.cfg.get("rotate_admin", True):
             return
@@ -644,8 +770,21 @@ class CephXRotationRemediator:
                 "client.admin rotated but FSID config keyring missing on installer"
             )
 
-        if not self._probe_admin_auth(clients[:1]):
-            raise RuntimeError("client.admin auth probe failed after keyring push")
+        probe_clients = clients[:1] if clients else []
+        ok, probe_error = self._probe_admin_auth(probe_clients)
+        if not ok:
+            client_bases = [
+                (getattr(c, "hostname", str(c)), self._host_rpm_base(c))
+                for c in probe_clients
+            ]
+            raise RuntimeError(
+                format_admin_probe_failure(
+                    key_type,
+                    self._cluster_rpm_base(),
+                    client_bases,
+                    probe_error,
+                )
+            )
 
         try:
             self._adm.ceph.auth.rm(backup_entity)
@@ -656,11 +795,12 @@ class CephXRotationRemediator:
             log.warning("Failed to remove %s: %s", backup_entity, exc)
 
     def _probe_admin_auth(self, clients=None):
+        """Return ``(ok, error_text)`` for installer + client ``ceph -s`` probes."""
         try:
             self._adm.ceph.status()
         except Exception as exc:
             log.error("Admin auth probe failed on installer: %s", exc)
-            return False
+            return False, str(exc)
         for client in clients or []:
             try:
                 client.exec_command(sudo=True, cmd="ceph -s", timeout=30)
@@ -670,8 +810,8 @@ class CephXRotationRemediator:
                     getattr(client, "hostname", client),
                     exc,
                 )
-                return False
-        return True
+                return False, str(exc)
+        return True, ""
 
     def _rotate_stragglers(self):
         checks = self._health_checks()
