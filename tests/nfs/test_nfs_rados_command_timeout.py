@@ -494,7 +494,9 @@ def _run_setup(installer, hosts, config):
         _apply_spec(installer, path)
         _wait_nfs_running(installer, seed_id)
         _require_dot_nfs_pool(installer)
-        log.info("Default NFS nfs.%s is running; leave it up for timeout cases", seed_id)
+        log.info(
+            "Default NFS nfs.%s is running; leave it up for timeout cases", seed_id
+        )
         return 0
     finally:
         installer.exec_command(sudo=True, cmd=f"rm -f {path}", check_ec=False)
@@ -565,7 +567,11 @@ def _run_timeout_case(installer, hosts, config):
     try:
         if set_value is None:
             got = _config_get_timeout(installer)
-            log.info("%s (no set_value; expect compiled default 30) = %s", TIMEOUT_OPTION, got)
+            log.info(
+                "%s (no set_value; expect compiled default 30) = %s",
+                TIMEOUT_OPTION,
+                got,
+            )
             if get_ok and got not in get_ok:
                 default_wrong = True
                 entry_got = got
