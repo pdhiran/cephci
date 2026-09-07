@@ -13,9 +13,11 @@ Pass/Fail is product, not harness:
   * ``ceph health detail``: ``CEPHADM_APPLY_SPEC_FAIL`` and
     ``timed out after N seconds`` (or ``N.0 seconds``)
 
-Do not scrape mgr journal. Do not treat ``ceph orch apply`` wall-clock
-as the timeout. ``config rm`` is forbidden (lab: get showed 30 but the
-live mgr kept the last set); restore with ``config set … 30``.
+Do not treat ``ceph orch apply`` wall-clock as the timeout.
+
+``config rm`` is not used to restore 30: it only clears the mon override, so
+``config get`` can show 30 while the live mgr still uses the last ``config set``.
+Teardown uses ``config set … 30``.
 
 Suite YAML keys (they are not interchangeable):
   * set_value — integer for ``config set`` (floats like 22.222 are EINVAL).
@@ -244,7 +246,11 @@ def _require_cephfs(installer):
 
 
 def _require_dot_nfs_pool(installer):
-    """Pause+apply must hit NFS RADOS on .nfs, not stall on pool create."""
+    """Require pool .nfs from the seed NFS before pause+apply.
+
+    Under OSD pause, a missing .nfs pool would stall on pool create. This
+    suite must stall on rados get conf-nfs.* (the NFS RADOS timeout).
+    """
     out, err = _ceph(installer, "ceph osd pool ls --format json", check_ec=False)
     data = _first_json("\n".join(p for p in (out, err) if p), "[")
     if isinstance(data, list):
@@ -254,8 +260,9 @@ def _require_dot_nfs_pool(installer):
     log.info("osd pools: %s", sorted(names))
     if ".nfs" not in names:
         raise OperationFailedError(
-            ".nfs pool is missing; seed NFS must exist so pause tests the "
-            "NFS RADOS timeout, not pool create"
+            "Pool .nfs is missing. Setup must leave seed NFS running so the "
+            "pool already exists. Pause+apply then times out on "
+            "rados get conf-nfs.*, not on creating .nfs."
         )
 
 
