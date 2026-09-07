@@ -3,8 +3,11 @@
 #---    IBMCEPH-14352 NFS rados command timeout ---
 #-------------------------------------
 # Conf: conf/tentacle/nfs/1admin-7node-3client.yaml
-# 1. Create one NFS (seed, creates .nfs). 2. Pause → default 30s → unpause.
-# 3. set 60 → get 60 → pause → health 60.0. 4. set 5 → health 5.0.
+# 1. Create one NFS (seed, creates .nfs).
+# 2. Default 30: get must be 30 (else set 30, still measure health, then Fail).
+#    Pause → add new NFS cluster using spec → health 30s → unpause.
+# 3. set 60 → get 60 → pause → health 60.0.
+# 4. set 5 → health 5.0.
 # 5. set 0 → get must be 0 or 1 (not leftover 5) → health 5.0.
 # Each timeout apply uses a unique service_id and ports.
 # Not label-rm / host down / IBMCEPH-14241 HA.
@@ -91,7 +94,7 @@ tests:
       name: IBMCEPH-14352 default timeout 30s
       module: test_nfs_rados_command_timeout.py
       desc: >-
-        Pause OSDs; apply new NFS; health timed out after 30.0 seconds; unpause
+        get must be 30 (else Fail after measuring 30s health); pause; add new NFS cluster using spec; health 30s
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:

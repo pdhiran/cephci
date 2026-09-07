@@ -34,8 +34,10 @@ Suite YAML keys (they are not interchangeable):
 
 Flow:
   1. Setup: one healthy NFS (creates .nfs). Leave it running.
-  2. Default 30: get must be 30. If not (rerun), warn, set 30, get
-     again; that is not proof of compiled default.
+  2. Default 30: first get must be 30. If not (leftover set / other
+     test), warn, set 30, still measure health. If health is 30s the
+     row still Fails (not compiled default). If get is still not 30
+     after set, Fail immediately.
   3. set 60 → get 60 → pause → health 60s
   4. set 5 → get 5 → health 5s (floor)
   5. set 0 → get 0 or 1 → health 5s
@@ -558,15 +560,19 @@ def _run_timeout_case(installer, hosts, config):
     path = None
     unpaused_ok = True
     case_exc = None
+    default_wrong = False
+    entry_got = None
     try:
         if set_value is None:
             got = _config_get_timeout(installer)
             log.info("%s (no set_value; expect compiled default 30) = %s", TIMEOUT_OPTION, got)
             if get_ok and got not in get_ok:
+                default_wrong = True
+                entry_got = got
                 log.warning(
-                    "%s is %r, not 30 (leftover config set or rerun). "
-                    "Setting 30 so this row can measure 30s health; this is "
-                    "not proof of compiled default.",
+                    "%s is %r, not 30 (leftover config set or other test). "
+                    "Setting 30 to measure health; this row will Fail even if "
+                    "health matches (not proof of compiled default).",
                     TIMEOUT_OPTION,
                     got,
                 )
@@ -623,6 +629,13 @@ def _run_timeout_case(installer, hosts, config):
         if not unpaused_ok:
             log.error("Also failed to unpause OSDs after this timeout case")
         raise case_exc
+    if default_wrong:
+        raise OperationFailedError(
+            f"At entry {TIMEOUT_OPTION}={entry_got!r}, not compiled default 30 "
+            f"(leftover config set / other test). After config set 30, health "
+            f"timed out after {expected:g} seconds. Row Fails: default was not "
+            f"30. Health match is not proof of compiled default."
+        )
     if not unpaused_ok:
         log.error(
             "Timeout string matched for nfs.%s; OSDs still paused after unpause. "
