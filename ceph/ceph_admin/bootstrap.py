@@ -363,9 +363,14 @@ class BootstrapMixin:
             )
 
         if registry_json:
+            # Suite YAML often hardcodes registry.redhat.io for RH test_bootstrap
+            # cases; for IBM builds use the image registry host in registry-json.
+            json_registry = registry_json
+            if manifest_obj.product == "ibm" and image_registry:
+                json_registry = image_registry
             cmd += construct_registry(
                 self,
-                registry_json,
+                json_registry,
                 json_file=True,
                 product=manifest_obj.product,
                 build_type=build_type,
