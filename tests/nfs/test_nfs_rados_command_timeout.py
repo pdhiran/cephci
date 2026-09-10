@@ -495,7 +495,8 @@ def _run_setup(installer, hosts, config):
         _wait_nfs_running(installer, seed_id)
         _require_dot_nfs_pool(installer)
         log.info(
-            "Default NFS nfs.%s is running; leave it up for timeout cases", seed_id
+            "TEST PASSED - IBMCEPH-14352 setup nfs.%s; pool .nfs present",
+            seed_id,
         )
         return 0
     finally:
@@ -533,6 +534,9 @@ def _run_teardown(installer, config):
         log.error("teardown: skipping orch rm while OSDs are still paused: %s", rm_ids)
     if errors:
         raise OperationFailedError("teardown: " + "; ".join(errors))
+    log.info(
+        "TEST PASSED - IBMCEPH-14352 teardown; OSDs unpaused, timeout 30, orch rm done"
+    )
     return 0
 
 
@@ -648,6 +652,12 @@ def _run_timeout_case(installer, hosts, config):
             "Product row stays Pass; teardown must clear pause.",
             service_id,
         )
+        return 0
+    log.info(
+        "TEST PASSED - IBMCEPH-14352 timeout case nfs.%s expect=%s",
+        service_id,
+        expected,
+    )
     return 0
 
 
