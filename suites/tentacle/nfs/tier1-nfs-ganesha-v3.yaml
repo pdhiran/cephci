@@ -313,6 +313,7 @@ tests:
       name: IBMCEPH-14352 setup default NFS
       module: test_nfs_rados_command_timeout.py
       desc: Apply one healthy NFS cluster and leave it running (creates pool .nfs)
+      polarion-id: CEPH-83632973
       abort-on-fail: true
       comments: IBMCEPH-14352
       config:
@@ -327,6 +328,7 @@ tests:
       module: test_nfs_rados_command_timeout.py
       desc: >-
         get must be 30 (else Fail after measuring 30s health); pause; add new NFS cluster using spec; health 30s
+      polarion-id: CEPH-83632973
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:
@@ -346,6 +348,7 @@ tests:
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 60; pause; new NFS; health timed out after 60.0 seconds; unpause
+      polarion-id: CEPH-83632973
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:
@@ -366,6 +369,7 @@ tests:
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 5; pause; new NFS; health timed out after 5.0 seconds; unpause
+      polarion-id: CEPH-83632973
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:
@@ -386,6 +390,7 @@ tests:
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 0; get must be 0 or 1 (not leftover 5); health 5.0; unpause
+      polarion-id: CEPH-83632973
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:
@@ -406,6 +411,7 @@ tests:
       name: IBMCEPH-14352 teardown
       module: test_nfs_rados_command_timeout.py
       desc: Unpause OSDs, config set timeout 30, orch rm seed and stall NFS
+      polarion-id: CEPH-83632973
       abort-on-fail: false
       comments: IBMCEPH-14352
       config:
