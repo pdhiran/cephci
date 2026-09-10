@@ -1,12 +1,11 @@
-"""IBMCEPH-14352: mgr/cephadm/nfs_rados_command_timeout under OSD pause.
+"""mgr/cephadm/nfs_rados_command_timeout under OSD pause.
 
-Customer (Acadia) NFS deploys failed because cephadm's NFS RADOS helper
-timed out at a hardcoded 10s. Product made it configurable (default 30s,
-floor 5s). In-lab we almost never see that customer latency, so this is
-not a customer clone. It is the same proxy as manual QE: seed NFS so pool
-``.nfs`` exists, ``ceph osd pause``, apply a NEW NFS spec. That stalls
-the same timeout wrapper (``rados get conf-nfs.*`` on ``.nfs``). It is
-not ``ganesha-rados-grace`` and not IBMCEPH-14241 (HA / host-down).
+cephadm's NFS RADOS helper is configurable (default 30s, floor 5s).
+In-lab we almost never see that latency, so this uses the QE proxy:
+seed NFS so pool ``.nfs`` exists, ``ceph osd pause``, apply a NEW NFS
+spec. That stalls the timeout wrapper (``rados get conf-nfs.*`` on
+``.nfs``). It is not ``ganesha-rados-grace`` and not an HA / host-down
+test.
 
 Pass/Fail is product, not harness:
   * ``ceph config get mgr mgr/cephadm/nfs_rados_command_timeout``
@@ -495,7 +494,7 @@ def _run_setup(installer, hosts, config):
         _wait_nfs_running(installer, seed_id)
         _require_dot_nfs_pool(installer)
         log.info(
-            "TEST PASSED - IBMCEPH-14352 setup nfs.%s; pool .nfs present",
+            "TEST PASSED - NFS rados command timeout setup nfs.%s; pool .nfs present",
             seed_id,
         )
         return 0
@@ -535,7 +534,7 @@ def _run_teardown(installer, config):
     if errors:
         raise OperationFailedError("teardown: " + "; ".join(errors))
     log.info(
-        "TEST PASSED - IBMCEPH-14352 teardown; OSDs unpaused, timeout 30, orch rm done"
+        "TEST PASSED - NFS rados command timeout teardown; OSDs unpaused, timeout 30, orch rm done"
     )
     return 0
 
@@ -654,7 +653,7 @@ def _run_timeout_case(installer, hosts, config):
         )
         return 0
     log.info(
-        "TEST PASSED - IBMCEPH-14352 timeout case nfs.%s expect=%s",
+        "TEST PASSED - NFS rados command timeout case nfs.%s expect=%s",
         service_id,
         expected,
     )
@@ -662,7 +661,7 @@ def _run_timeout_case(installer, hosts, config):
 
 
 def run(ceph_cluster, **kw):
-    """Setup default NFS, one timeout case, or teardown (IBMCEPH-14352)."""
+    """Setup default NFS, one timeout case, or teardown."""
     config = kw.get("config") or {}
     mode = config.get("mode", "timeout")
     installer = ceph_cluster.get_nodes(role="installer")[0]
@@ -677,5 +676,5 @@ def run(ceph_cluster, **kw):
             return _run_timeout_case(installer, hosts, config)
         raise ConfigError(f"Unknown mode {mode!r}; use setup, timeout, or teardown")
     except Exception as exc:
-        log.exception("IBMCEPH-14352 %s failed: %s", mode, exc)
+        log.exception("NFS rados command timeout %s failed: %s", mode, exc)
         return 1
