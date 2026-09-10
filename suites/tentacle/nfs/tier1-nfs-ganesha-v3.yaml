@@ -306,16 +306,15 @@ tests:
   #       total_num_exports: 4
   #     comments: cthon tests for NFS ganesha - BZ-2418561
 
-  # IBMCEPH-14352: cephadm NFS RADOS timeout (no client mount, not NFSv3-specific).
+  # cephadm NFS RADOS timeout (no client mount, not NFSv3-specific).
   # Last block only: test does OSD pause/unpause.
   # Unique service_id/ports vs 2049.
   - test:
-      name: IBMCEPH-14352 setup default NFS
+      name: NFS rados command timeout setup default NFS
       module: test_nfs_rados_command_timeout.py
       desc: Apply one healthy NFS cluster and leave it running (creates pool .nfs)
       polarion-id: CEPH-83632973
       abort-on-fail: true
-      comments: IBMCEPH-14352
       config:
         mode: setup
         service_id: nfs-14352-seed
@@ -324,13 +323,12 @@ tests:
         cluster_qos_port: 63100
 
   - test:
-      name: IBMCEPH-14352 default timeout 30s
+      name: NFS rados command timeout default 30s
       module: test_nfs_rados_command_timeout.py
       desc: >-
         get must be 30 (else Fail after measuring 30s health); pause; add new NFS cluster using spec; health 30s
       polarion-id: CEPH-83632973
       abort-on-fail: false
-      comments: IBMCEPH-14352
       config:
         mode: timeout
         service_id: nfs-14352-stall-30
@@ -344,13 +342,12 @@ tests:
         strict_get: true
 
   - test:
-      name: IBMCEPH-14352 timeout set 60s
+      name: NFS rados command timeout set 60s
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 60; pause; new NFS; health timed out after 60.0 seconds; unpause
       polarion-id: CEPH-83632973
       abort-on-fail: false
-      comments: IBMCEPH-14352
       config:
         mode: timeout
         service_id: nfs-14352-stall-60
@@ -365,13 +362,12 @@ tests:
         strict_get: true
 
   - test:
-      name: IBMCEPH-14352 timeout floor 5s
+      name: NFS rados command timeout floor 5s
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 5; pause; new NFS; health timed out after 5.0 seconds; unpause
       polarion-id: CEPH-83632973
       abort-on-fail: false
-      comments: IBMCEPH-14352
       config:
         mode: timeout
         service_id: nfs-14352-stall-5
@@ -386,13 +382,12 @@ tests:
         strict_get: true
 
   - test:
-      name: IBMCEPH-14352 timeout below floor 0s
+      name: NFS rados command timeout below floor 0s
       module: test_nfs_rados_command_timeout.py
       desc: >-
         config set 0; get must be 0 or 1 (not leftover 5); health 5.0; unpause
       polarion-id: CEPH-83632973
       abort-on-fail: false
-      comments: IBMCEPH-14352
       config:
         mode: timeout
         service_id: nfs-14352-stall-0
@@ -408,12 +403,11 @@ tests:
         strict_get: true
 
   - test:
-      name: IBMCEPH-14352 teardown
+      name: NFS rados command timeout teardown
       module: test_nfs_rados_command_timeout.py
       desc: Unpause OSDs, config set timeout 30, orch rm seed and stall NFS
       polarion-id: CEPH-83632973
       abort-on-fail: false
-      comments: IBMCEPH-14352
       config:
         mode: teardown
         service_id: nfs-14352-seed
