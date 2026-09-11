@@ -38,6 +38,7 @@ class Export(Cli):
             readonly (Boolean) : enable readonly on export
             squash (str) : value to squash
             client-addr (str) : Authorized client hostname/IP
+            cmount_path: If set, pass --cmount_path using the subvol getpath
         """
         # Step 1: Check if the subvolume group is present.If not, create subvolume group
         cmd = "ceph fs subvolumegroup ls cephfs"
@@ -50,6 +51,7 @@ class Export(Cli):
 
         enctag = kwargs.get("enctag", None)
         xprtsec = kwargs.get("xprtsec", None)
+        cmount_path = kwargs.get("cmount_path", None)
         # NFS-export-only options must not be passed to ``fs subvolume create``; doing so
         # can break ``subvolume getpath`` (empty path) and yields ``ceph nfs export create
         # ... --path=`` which makes Ganesha reject mounts (e.g. ENOENT / No such file).
@@ -85,6 +87,8 @@ class Export(Cli):
             cmd = f"{cmd} --kmip_key_id={enctag}"
         if xprtsec:
             cmd += f" --xprtsec {xprtsec}"
+        if cmount_path:
+            cmd += f" --cmount_path={path}"
         if readonly:
             cmd += " --readonly"
         if squash:

@@ -1615,7 +1615,9 @@ def create_nfs_via_file_and_verify(
             resolve to any host, used with ``ceph orch ps`` via
             ``_resolve_nfs_nodes_for_service_ids`` to find Ganesha daemon nodes.
         **kwargs: Optional ``timings`` dict and ``timings_key`` str to record when
-            ``ceph orch apply`` completes.
+            ``ceph orch apply`` completes. Optional ``nfs_name`` scopes the
+            daemon wait to ``nfs.<nfs_name>``; otherwise each spec
+            ``service_id`` is waited on (not every NFS service on the cluster).
     Returns:
         bool: True if apply and verification succeeded, else False.
     """
@@ -1663,7 +1665,25 @@ def create_nfs_via_file_and_verify(
                 triggered_at,
                 timings_key,
             )
-        verify_nfs_ganesha_service(node=installer_node, timeout=timeout)
+        nfs_name = kwargs.get("nfs_name")
+        service_ids = (
+            [nfs_name]
+            if nfs_name
+            else list(
+                dict.fromkeys(
+                    obj.get("service_id")
+                    for obj in (nfs_objects or [])
+                    if isinstance(obj, dict) and obj.get("service_id")
+                )
+            )
+        )
+        if service_ids:
+            for service_id in service_ids:
+                verify_nfs_ganesha_service(
+                    node=installer_node, timeout=timeout, nfs_name=service_id
+                )
+        else:
+            verify_nfs_ganesha_service(node=installer_node, timeout=timeout)
         log.info("NFS Ganesha spec file applied successfully.")
         nodes_for_coredump = None
         if nfs_nodes:

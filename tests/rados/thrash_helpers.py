@@ -1086,6 +1086,29 @@ def _export_pseudo(export_entry) -> str:
     )
 
 
+def _nfs_churn_export_create_cmd(nfs_config, cluster_id, pseudo, fs_name) -> str:
+    """Build export create. PEC clusters keep ``--cmount_path`` (not ``--path=/``)."""
+    suffix = "--path=/"
+    if nfs_config.get("enable_pec"):
+        sv_path = None
+        for entry in nfs_config.get("exports") or []:
+            if (
+                entry.get("cluster_id") == cluster_id
+                and entry.get("pseudo_path") == pseudo
+                and entry.get("sv_path")
+            ):
+                sv_path = entry["sv_path"]
+                break
+        if not sv_path:
+            for entry in nfs_config.get("exports") or []:
+                if entry.get("cluster_id") == cluster_id and entry.get("sv_path"):
+                    sv_path = entry["sv_path"]
+                    break
+        if sv_path:
+            suffix = f"--path={sv_path} --cmount_path={sv_path}"
+    return f"ceph nfs export create cephfs {cluster_id} {pseudo} {fs_name} {suffix}"
+
+
 def _nfs_export_mount_targets(nfs_config: Dict) -> List[Dict[str, Any]]:
     """Build mount targets from ``nfs_config`` with multi-host fallback support.
 
@@ -1504,8 +1527,9 @@ def thrash_nfs_export_churn(
                 churn_export_idx += 1
                 installer.exec_command(
                     sudo=True,
-                    cmd=f"ceph nfs export create cephfs {cluster_id} "
-                    f"{pseudo} {fs_name} --path=/",
+                    cmd=_nfs_churn_export_create_cmd(
+                        nfs_config, cluster_id, pseudo, fs_name
+                    ),
                     timeout=30,
                 )
                 result["creates"] += 1
@@ -1535,8 +1559,9 @@ def thrash_nfs_export_churn(
                         _sleep_with_stop(stop_flag, total_seconds=2, step=1)
                         installer.exec_command(
                             sudo=True,
-                            cmd=f"ceph nfs export create cephfs {cluster_id} "
-                            f"{pseudo} {fs_name} --path=/",
+                            cmd=_nfs_churn_export_create_cmd(
+                                nfs_config, cluster_id, pseudo, fs_name
+                            ),
                             timeout=30,
                         )
                         result["creates"] += 1
